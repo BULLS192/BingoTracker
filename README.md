@@ -2,20 +2,26 @@
 
 Mobile-first 75-ball bingo card monitor.
 
-## V0.1
+## V0.3
 
-- Track up to 20 bingo cards
+- Practical unlimited card count (no 20-card hard cap)
 - One-tap called-number entry across all cards
-- Undo and call history
+- Timestamped call history
+- Round start/end time and duration tracking
+- Per-call card progress snapshots
+- 1-away and BINGO alerts
 - Single line, four corners, X, outside frame, blackout, and custom patterns
-- Automatic BINGO detection
-- 1-away warnings showing the exact number needed
-- Editable card numbers with B/I/N/G/O range validation
-- Local browser persistence between refreshes
-- Responsive layout for phones and desktops
+- Photo capture/upload with browser-side OCR
+- Original card photo retained locally with the round archive
+- Session and round history stored locally for offline-first reliability
+- JSON session export containing rounds, cards, calls, duration, patterns, near-miss progress, results, and retained photo data
+- Direct link to the user's BingoTracker Google Drive archive folder
+- Responsive mobile/PWA layout
 
-## Next milestone
+## Storage model
 
-V0.2 will add camera/photo ingestion, multi-card segmentation, OCR with B/I/N/G/O range validation, and a review screen before play.
+Live play is local/offline-first. No Supabase dependency is required. The exported session JSON is intended to be archived in Google Drive. The app does not embed Google credentials or automatically upload to Drive from the public static site.
 
-The app is currently a static site and can be hosted directly with GitHub Pages.
+## Live deployment
+
+Render watches `main` and auto-deploys commits to the live site.
