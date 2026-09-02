@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Bingo Tracker</title>
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111827;background:#f3f4f6}*{box-sizing:border-box}body{margin:0;background:#f3f4f6}button,input,select{font:inherit}.app{max-width:1100px;margin:0 auto;padding:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:16px}.grid2{display:grid;gap:16px}.topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.btn{border:1px solid #d1d5db;background:#fff;border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer;min-height:44px}.btn.primary{background:#111827;color:#fff;border-color:#111827}.btn:disabled{opacity:.45;cursor:not-allowed}.muted{color:#6b7280}.small{font-size:.875rem}.title{font-size:1.35rem;font-weight:800}.status{border:1px solid #e5e7eb;border-radius:12px;padding:12px}.history{display:flex;gap:8px;flex-wrap:wrap;min-height:46px;border:1px solid #e5e7eb;border-radius:12px;padding:8px}.pill{border:1px solid #d1d5db;border-radius:10px;padding:6px 8px}.pattern-grid,.bingo-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.pattern-grid{max-width:260px}.pattern-cell{aspect-ratio:1;border:1px solid #d1d5db;border-radius:8px;background:#fff}.pattern-cell.on{background:#dbeafe;border-color:#60a5fa}.number-row{display:grid;grid-template-columns:34px 1fr;gap:8px;margin-top:8px}.letter{font-weight:900;text-align:center;padding-top:10px}.number-grid{display:grid;grid-template-columns:repeat(8,minmax(42px,1fr));gap:5px}.number-btn{min-height:44px;border:1px solid #d1d5db;background:#fff;border-radius:9px;font-weight:700;cursor:pointer}.number-btn.called{background:#111827;color:#fff}.cards{display:grid;gap:14px}.card-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.card-status{font-weight:800}.bingo-head{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center;font-weight:900;margin-top:10px}.bingo-cell{aspect-ratio:1;width:100%;min-width:0;border:1px solid #d1d5db;border-radius:8px;text-align:center;font-weight:800;background:#fff}.bingo-cell.hit{background:#dbeafe}.free{display:flex;align-items:center;justify-content:center;background:#eef2ff}.toolbar{display:flex;gap:8px;flex-wrap:wrap}.section-title{font-weight:800;margin-bottom:4px}.warning{font-weight:800}.bingo-alert{background:#dcfce7;border-color:#86efac}.near-alert{background:#fef3c7;border-color:#fcd34d}.footer-note{font-size:.82rem;color:#6b7280}.spaced{display:grid;gap:12px}@media(min-width:800px){.grid2{grid-template-columns:1.15fr .85fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.number-grid{grid-template-columns:repeat(5,minmax(42px,1fr))}.app{padding:10px}.card{padding:12px}}
+  </style>
+</head>
+<body>
+<main class="app spaced">
+  <section class="grid2">
+    <div class="card spaced">
+      <div class="topbar">
+        <div><div class="muted small">Current round</div><div id="roundStatus" class="title">Round 1 · Single Line</div></div>
+        <div class="toolbar"><button id="undoBtn" class="btn" type="button">Undo</button><button id="newRoundBtn" class="btn primary" type="button">New Round</button></div>
+      </div>
+      <div id="alertBox" class="status" aria-live="polite">No numbers called yet.</div>
+      <div><div class="topbar"><div class="section-title">Called numbers</div><div id="calledCount" class="muted small">0 called</div></div><div id="callHistory" class="history muted small">Tap numbers below as they are called.</div></div>
+    </div>
+
+    <div class="card spaced">
+      <div class="section-title">Winning pattern</div>
+      <select id="patternSelect" class="btn" style="width:100%">
+        <option value="line">Single Line</option>
+        <option value="fourCorners">Four Corners</option>
+        <option value="x">X Pattern</option>
+        <option value="outside">Outside Frame</option>
+        <option value="blackout">Blackout</option>
+        <option value="custom">Custom Pattern</option>
+      </select>
+      <div id="patternGrid" class="pattern-grid"></div>
+      <div id="patternHelp" class="muted small"></div>
+    </div>
+  </section>
+
+  <section class="card spaced">
+    <div class="topbar"><div><div class="section-title">Number pad</div><div class="muted small">Tap a called number once. It is marked across every card.</div></div><button id="clearCallsBtn" class="btn" type="button">Clear Calls</button></div>
+    <div id="numberPad"></div>
+  </section>
+
+  <section class="card spaced">
+    <div class="topbar"><div><div class="section-title">Your cards</div><div class="muted small">Add up to 20 cards. Tap any number to correct it.</div></div><div class="toolbar"><button id="addCardBtn" class="btn primary" type="button">Add Card</button><button id="sampleCardsBtn" class="btn" type="button">Load 10 Samples</button></div></div>
+    <div id="cardsContainer" class="cards"></div>
+  </section>
+
+  <section class="card">
+    <div class="section-title">Photo scanning</div>
+    <div class="footer-note">V0.1 focuses on the reliable bingo engine first. Multi-card camera/OCR recognition is the next production milestone.</div>
+  </section>
+</main>
+<script>
+(() => {
+  const letters=['B','I','N','G','O'];
+  const ranges=[[1,15],[16,30],[31,45],[46,60],[61,75]];
+  let calls=[],cards=[],round=1,pattern='line';
+  let customMask=Array(25).fill(false); customMask[12]=true;
+  const $=id=>document.getElementById(id);
+  const stateKey='bingoTrackerV01';
+
+  function save(){try{localStorage.setItem(stateKey,JSON.stringify({calls,cards,round,pattern,customMask}))}catch(e){}}
+  function load(){try{const s=JSON.parse(localStorage.getItem(stateKey)||'null');if(s){calls=Array.isArray(s.calls)?s.calls:[];cards=Array.isArray(s.cards)?s.cards:[];round=Number.isFinite(s.round)?s.round:1;pattern=s.pattern||'line';customMask=Array.isArray(s.customMask)&&s.customMask.length===25?s.customMask:customMask;}}catch(e){}}
+  function col(n){return n<=15?0:n<=30?1:n<=45?2:n<=60?3:4}
+  function id(){return globalThis.crypto?.randomUUID?.()||String(Date.now()+Math.random())}
+  function makeCard(){const grid=Array(25).fill(null);for(let c=0;c<5;c++){const [lo,hi]=ranges[c],vals=[];for(let n=lo;n<=hi;n++)vals.push(n);for(let i=vals.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[vals[i],vals[j]]=[vals[j],vals[i]]}for(let r=0;r<5;r++)grid[r*5+c]=vals[r]}grid[12]='FREE';return{id:id(),grid}}
+  function mask(){const m=Array(25).fill(false);if(pattern==='fourCorners')[0,4,20,24].forEach(i=>m[i]=true);if(pattern==='x')[0,4,6,8,12,16,18,20,24].forEach(i=>m[i]=true);if(pattern==='outside')for(let r=0;r<5;r++)for(let c=0;c<5;c++)if(r===0||r===4||c===0||c===4)m[r*5+c]=true;if(pattern==='blackout')m.fill(true);if(pattern==='custom')return customMask.slice();if(pattern==='line')[0,1,2,3,4].forEach(i=>m[i]=true);return m}
+  function lineMasks(){const ms=[];for(let r=0;r<5;r++){const m=Array(25).fill(false);for(let c=0;c<5;c++)m[r*5+c]=true;ms.push(m)}for(let c=0;c<5;c++){const m=Array(25).fill(false);for(let r=0;r<5;r++)m[r*5+c]=true;ms.push(m)}let m=Array(25).fill(false);[0,6,12,18,24].forEach(i=>m[i]=true);ms.push(m);m=Array(25).fill(false);[4,8,12,16,20].forEach(i=>m[i]=true);ms.push(m);return ms}
+  function evaluate(card){const covered=card.grid.map(v=>v==='FREE'||calls.includes(Number(v)));let best=null;for(const m of pattern==='line'?lineMasks():[mask()]){const req=m.map((v,i)=>v?i:-1).filter(i=>i>=0),missing=req.filter(i=>!covered[i]);if(!best||missing.length<best.missing.length)best={req,missing,score:req.length-missing.length}}return{bingo:best.missing.length===0,missing:best.missing.map(i=>card.grid[i]).filter(v=>v!=='FREE'),coveredCount:best.score,requiredCount:best.req.length}}
+  function renderPattern(){const el=$('patternGrid');el.innerHTML='';const m=mask();for(let i=0;i<25;i++){const b=document.createElement('button');b.type='button';b.className='pattern-cell'+(m[i]?' on':'');b.textContent=i===12?'★':'';if(pattern==='custom')b.addEventListener('click',()=>{customMask[i]=!customMask[i];update()});else b.disabled=true;el.appendChild(b)}const help={line:'Any completed horizontal, vertical, or diagonal line wins.',fourCorners:'All four corner squares must be covered.',x:'Both diagonals form the winning X.',outside:'Every square around the outer edge must be covered.',blackout:'Every square must be covered; FREE counts automatically.',custom:'Tap squares to draw the exact pattern being played.'};$('patternHelp').textContent=help[pattern];$('roundStatus').textContent=`Round ${round} · ${$('patternSelect').options[$('patternSelect').selectedIndex].text}`}
+  function renderPad(){const host=$('numberPad');host.innerHTML='';ranges.forEach(([lo,hi],i)=>{const row=document.createElement('div');row.className='number-row';const lab=document.createElement('div');lab.className='letter';lab.textContent=letters[i];const grid=document.createElement('div');grid.className='number-grid';for(let n=lo;n<=hi;n++){const b=document.createElement('button');b.type='button';b.className='number-btn'+(calls.includes(n)?' called':'');b.textContent=n;b.addEventListener('click',()=>{const k=calls.indexOf(n);k>=0?calls.splice(k,1):calls.push(n);update()});grid.appendChild(b)}row.append(lab,grid);host.appendChild(row)})}
+  function renderHistory(){$('calledCount').textContent=`${calls.length} called`;$('undoBtn').disabled=!calls.length;const h=$('callHistory');h.innerHTML='';if(!calls.length){h.textContent='Tap numbers below as they are called.';return}calls.forEach(n=>{const s=document.createElement('span');s.className='pill';s.textContent=letters[col(n)]+n;h.appendChild(s)})}
+  function renderCards(){const host=$('cardsContainer');host.innerHTML='';if(!cards.length){const e=document.createElement('div');e.className='status muted';e.textContent='No cards yet. Add a card or load sample cards.';host.appendChild(e);return}cards.forEach((card,index)=>{const ev=evaluate(card),wrap=document.createElement('article');wrap.className='card';const head=document.createElement('div');head.className='card-head';const left=document.createElement('div');left.innerHTML=`<strong>Card ${index+1}</strong> <span class="card-status">${ev.bingo?'🎉 BINGO':ev.missing.length===1?'⚠️ 1 away · '+letters[col(Number(ev.missing[0]))]+ev.missing[0]:ev.missing.length+' away'}</span>`;const del=document.createElement('button');del.className='btn';del.type='button';del.textContent='Remove';del.addEventListener('click',()=>{cards.splice(index,1);update()});head.append(left,del);const heads=document.createElement('div');heads.className='bingo-head';letters.forEach(l=>{const d=document.createElement('div');d.textContent=l;heads.appendChild(d)});const grid=document.createElement('div');grid.className='bingo-grid';card.grid.forEach((v,i)=>{if(v==='FREE'){const d=document.createElement('div');d.className='bingo-cell free';d.textContent='FREE';grid.appendChild(d);return}const input=document.createElement('input');input.className='bingo-cell'+(calls.includes(Number(v))?' hit':'');input.inputMode='numeric';input.value=v;input.addEventListener('change',()=>{const c=i%5,[lo,hi]=ranges[c];let val=parseInt(input.value,10);if(!Number.isFinite(val))val=lo;val=Math.max(lo,Math.min(hi,val));card.grid[i]=val;update()});grid.appendChild(input)});const prog=document.createElement('div');prog.className='muted small';prog.textContent=pattern==='blackout'?`${ev.coveredCount}/${ev.requiredCount} pattern squares covered`:ev.missing.length&&ev.missing.length<=3?`Needs: ${ev.missing.map(n=>letters[col(Number(n))]+n).join(', ')}`:`${ev.coveredCount}/${ev.requiredCount} best pattern progress`;wrap.append(head,heads,grid,prog);host.appendChild(wrap)})}
+  function renderAlert(){const r=cards.map((c,i)=>({i,ev:evaluate(c)})),wins=r.filter(x=>x.ev.bingo),box=$('alertBox');box.className='status';if(wins.length){box.classList.add('bingo-alert');box.textContent='🎉 BINGO on '+wins.map(x=>'Card '+(x.i+1)).join(', ')+'!';return}const one=r.filter(x=>x.ev.missing.length===1);if(one.length){const g={};one.forEach(x=>{const n=x.ev.missing[0];(g[n]||=[]).push(x.i+1)});box.classList.add('near-alert');box.textContent='⚠️ ONE AWAY: '+Object.entries(g).map(([n,ids])=>`${letters[col(Number(n))]}${n} wins Card${ids.length>1?'s':''} ${ids.join(', ')}`).join(' · ');return}box.textContent=calls.length?`Monitoring ${cards.length} card${cards.length===1?'':'s'} across all called numbers.`:'No numbers called yet.'}
+  function update(){save();renderPattern();renderPad();renderHistory();renderCards();renderAlert()}
+  $('patternSelect').addEventListener('change',()=>{pattern=$('patternSelect').value;update()});$('addCardBtn').addEventListener('click',()=>{if(cards.length<20){cards.push(makeCard());update()}});$('sampleCardsBtn').addEventListener('click',()=>{cards=Array.from({length:10},makeCard);update()});$('undoBtn').addEventListener('click',()=>{calls.pop();update()});$('clearCallsBtn').addEventListener('click',()=>{calls=[];update()});$('newRoundBtn').addEventListener('click',()=>{round++;calls=[];update()});
+  load();$('patternSelect').value=pattern;if(!cards.length)cards=[makeCard(),makeCard()];update();
+})();
+</script>
+</body>
+</html>
