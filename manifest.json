@@ -1,0 +1,10 @@
+{
+  "name": "Bingo Tracker",
+  "short_name": "BingoTracker",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#111827",
+  "description": "Scan bingo cards, track called numbers, monitor patterns, and alert on Bingo."
+}
